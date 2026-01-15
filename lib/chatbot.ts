@@ -66,7 +66,7 @@ export class ChatbotService {
       id,
       messages: [],
       currentStep: CHAT_STEPS.GREETING,
-      collectedData: {},
+      collectedData: {}, // police/admin session
       isCompleted: false,
       createdAt: new Date().toISOString(),
       language: undefined,
@@ -79,13 +79,13 @@ export class ChatbotService {
       "Please select your preferred language:\n1. English\n2. हिंदी (Hindi)\n3. मराठी (Marathi)"
     )
 
-   
-
     return session
   }
-   public getCompletedComplaints(): ChatSession[] {
-      return Array.from(this.sessions.values()).filter(session => session.isCompleted)
-    }
+
+  public getCompletedComplaints(): ChatSession[] {
+    return Array.from(this.sessions.values()).filter(session => session.isCompleted)
+  }
+
   async processMessage(sessionId: string, userMessage: string): Promise<ChatMessage[]> {
     const session = this.sessions.get(sessionId)
     if (!session) throw new Error("Session not found")
@@ -112,6 +112,7 @@ export class ChatbotService {
       return getTranslation("namePrompt", session.language)
     }
 
+    // ================== POLICE/ADMIN FLOW ==================
     switch (session.currentStep) {
       // ----------------- BASIC INFO -----------------
       case CHAT_STEPS.NAME:
@@ -234,7 +235,6 @@ Do you want to edit Police Station?
         session.currentStep = CHAT_STEPS.INCIDENT_TYPE
         return INCIDENT_TYPES.map((t, i) => `${i + 1}. ${t}`).join("\n")
 
-      // ----------------- INCIDENT -----------------
       case CHAT_STEPS.INCIDENT_TYPE:
         const idx = parseInt(userInput) - 1
         if (isNaN(idx) || idx < 0 || idx >= INCIDENT_TYPES.length)
@@ -271,22 +271,21 @@ Do you want to edit Police Station?
         )
 
       case CHAT_STEPS.BNS_SUGGESTION:
-  const selectedSections = userInput
-    .split(",")
-    .map(i => parseInt(i.trim()))
-    .filter(i => !isNaN(i) && i >= 1 && i <= (data.lastBnsSuggestions?.length || 0))
-    .map(i => {
-      const s = data.lastBnsSuggestions![i - 1].section
-      return `Section ${s.section_number} - ${s.title}` // Convert object to string
-    })
+        const selectedSections = userInput
+          .split(",")
+          .map(i => parseInt(i.trim()))
+          .filter(i => !isNaN(i) && i >= 1 && i <= (data.lastBnsSuggestions?.length || 0))
+          .map(i => {
+            const s = data.lastBnsSuggestions![i - 1].section
+            return `Section ${s.section_number} - ${s.title}`
+          })
 
-  if (selectedSections.length === 0) return getTranslation("invalidInput", lang)
+        if (selectedSections.length === 0) return getTranslation("invalidInput", lang)
 
-  data.bnsSections = selectedSections
-  data.bnsSection = selectedSections[0] // Optional: store primary section as string
-  session.currentStep = CHAT_STEPS.DELAY_REASON
-  return "Reason for delay in reporting (if any):"
-
+        data.bnsSections = selectedSections
+        data.bnsSection = selectedSections[0]
+        session.currentStep = CHAT_STEPS.DELAY_REASON
+        return "Reason for delay in reporting (if any):"
 
       case CHAT_STEPS.DELAY_REASON:
         data.delayReason = userInput || ""
@@ -298,7 +297,6 @@ Do you want to edit Police Station?
         session.currentStep = CHAT_STEPS.PRIORITY
         return getTranslation("priorityPrompt", lang)
 
-      // ----------------- PRIORITY & EDIT -----------------
       case CHAT_STEPS.PRIORITY:
         if (!["1", "2", "3", "4"].includes(userInput)) return getTranslation("invalidInput", lang)
         data.priority = userInput

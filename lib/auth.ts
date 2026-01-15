@@ -1,10 +1,14 @@
+// =======================
+// TYPES
+// =======================
+
 export interface User {
   id: string
-  badgeNumber: string
+  badgeNumber?: string        // police only
   name: string
-  rank: string
-  station: string
-  role: "officer" | "admin"
+  rank?: string               // police only
+  station?: string            // police only
+  role: "officer" | "citizen"   // removed admin
 }
 
 export interface LoginCredentials {
@@ -12,8 +16,30 @@ export interface LoginCredentials {
   password: string
 }
 
-// Mock users for demonstration
-const mockUsers: (User & { password: string })[] = [
+export interface CitizenLoginCredentials {
+  phone: string
+  password: string
+}
+
+export interface CitizenRegisterData {
+  name: string
+  email: string
+  phone: string
+  password: string
+}
+
+// =======================
+// STORAGE KEYS
+// =======================
+
+const CITIZEN_STORAGE_KEY = "registered_citizens"
+const CURRENT_USER_KEY = "fir_user"
+
+// =======================
+// MOCK DATA (POLICE)
+// =======================
+
+const mockPoliceUsers: (User & { password: string })[] = [
   {
     id: "1",
     badgeNumber: "PO001",
@@ -23,40 +49,114 @@ const mockUsers: (User & { password: string })[] = [
     station: "Central Station",
     role: "officer",
   },
-  {
-    id: "2",
-    badgeNumber: "SI001",
-    password: "admin123",
-    name: "Inspector Sarah Johnson",
-    rank: "Sub Inspector",
-    station: "Central Station",
-    role: "admin",
-  },
+  // admin removed completely
 ]
 
-export const login = async (credentials: LoginCredentials): Promise<User | null> => {
-  // Simulate API call delay
-  await new Promise((resolve) => setTimeout(resolve, 1000))
+// =======================
+// HELPERS (CITIZEN STORAGE)
+// =======================
 
-  const user = mockUsers.find((u) => u.badgeNumber === credentials.badgeNumber && u.password === credentials.password)
-
-  if (user) {
-    const { password, ...userWithoutPassword } = user
-    localStorage.setItem("fir_user", JSON.stringify(userWithoutPassword))
-    return userWithoutPassword
-  }
-
-  return null
+const getStoredCitizens = (): (User & {
+  phone: string
+  email: string
+  password: string
+})[] => {
+  if (typeof window === "undefined") return []
+  const data = localStorage.getItem(CITIZEN_STORAGE_KEY)
+  return data ? JSON.parse(data) : []
 }
 
+const saveCitizens = (citizens: any[]) => {
+  localStorage.setItem(CITIZEN_STORAGE_KEY, JSON.stringify(citizens))
+}
+
+// =======================
+// POLICE AUTH
+// =======================
+
+export const login = async (
+  credentials: LoginCredentials
+): Promise<User | null> => {
+  // small delay for realism
+  await new Promise((r) => setTimeout(r, 500))
+
+  // trim and uppercase badge number to avoid errors
+  const badgeNumber = credentials.badgeNumber.trim().toUpperCase()
+  const password = credentials.password.trim()
+
+  const user = mockPoliceUsers.find(
+    (u) => u.badgeNumber?.toUpperCase() === badgeNumber && u.password === password
+  )
+
+  if (!user) return null
+
+  const { password: _pwd, ...safeUser } = user
+  localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(safeUser))
+  return safeUser
+}
+
+// =======================
+// CITIZEN AUTH
+// =======================
+
+export const registerCitizen = async (
+  data: CitizenRegisterData
+): Promise<{ success: boolean; message: string }> => {
+  await new Promise((r) => setTimeout(r, 500))
+
+  const citizens = getStoredCitizens()
+
+  const exists = citizens.some((c) => c.phone === data.phone.trim())
+  if (exists) {
+    return { success: false, message: "Citizen already registered" }
+  }
+
+  citizens.push({
+    id: Date.now().toString(),
+    name: data.name.trim(),
+    email: data.email.trim(),
+    phone: data.phone.trim(),
+    password: data.password, // plaintext for demo
+    role: "citizen",
+  })
+
+  saveCitizens(citizens)
+
+  return { success: true, message: "Citizen registered successfully" }
+}
+
+export const loginCitizen = async (
+  credentials: CitizenLoginCredentials
+): Promise<User | null> => {
+  await new Promise((r) => setTimeout(r, 500))
+
+  const citizens = getStoredCitizens()
+
+  const citizen = citizens.find(
+    (c) =>
+      c.phone === credentials.phone.trim() &&
+      c.password === credentials.password.trim()
+  )
+
+  if (!citizen) return null
+
+  const { password: _pwd, ...safeCitizen } = citizen
+  localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(safeCitizen))
+  return safeCitizen
+}
+
+// =======================
+// COMMON HELPERS
+// =======================
+
 export const logout = () => {
-  localStorage.removeItem("fir_user")
+  localStorage.removeItem(CURRENT_USER_KEY)
 }
 
 export const getCurrentUser = (): User | null => {
   if (typeof window === "undefined") return null
 
-  const userStr = localStorage.getItem("fir_user")
+  const userStr = localStorage.getItem(CURRENT_USER_KEY)
   if (!userStr) return null
 
   try {

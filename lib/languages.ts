@@ -12,9 +12,28 @@ export const languageNames: Record<LanguageCode, string> = {
   mr: "मराठी (Marathi)",
 }
 
-// Complete translations for chatbot messages
+// Incident types for citizen chatbot
+export const INCIDENT_TYPES = [
+  "Theft",
+  "Robbery",
+  "Burglary",
+  "Assault",
+  "Domestic Violence",
+  "Fraud",
+  "Cybercrime",
+  "Drug Offense",
+  "Traffic Violation",
+  "Vandalism",
+  "Missing Person",
+  "Rape",
+  "Kidnap",
+  "Child Marriage",
+  "Other",
+]
+
 export const translations: Record<LanguageCode, Record<string, string>> = {
   en: {
+    // --- Police Chatbot ---
     greeting:
       "Hello! I'm your AI Assistant for filing police complaints. I'll help you register a First Information Report (FIR) by collecting all necessary details.\n\nThis process will take about 10-15 minutes. Are you ready to begin?",
     namePrompt: "What is your full name?",
@@ -48,8 +67,35 @@ export const translations: Record<LanguageCode, Record<string, string>> = {
     invalidInput: "Please provide a valid input.",
     complaintSubmitted: "Your complaint has already been submitted.",
     startOver: "No problem! Let's start over.",
+
+    // --- Citizen Chatbot ---
+    citizenGreeting:
+      "Welcome to the Citizen e-FIR Chatbot!\nPlease select your preferred language:\n1. English\n2. Hindi\n3. Marathi",
+    citizenSelectLanguage: "Please select your language:\n1. English\n2. हिंदी (Hindi)\n3. मराठी (Marathi)",
+    citizenName: "May I know your full name?",
+    citizenPhone: "Please provide your phone number.",
+    citizenAddress: "Please provide your complete address.",
+    citizenFatherHusband: "What is your father's or husband's name? (If not applicable, type 'N/A')",
+    citizenDOB: "Enter your date of birth (DD/MM/YYYY).",
+    citizenNationality: "What is your nationality?",
+    citizenOccupation: "What is your occupation?",
+    citizenDistrict: "Enter your district.",
+    citizenIncidentType: `Select the type of incident:\n${INCIDENT_TYPES.map((t, i) => `${i+1}. ${t}`).join("\n")}`,
+    citizenPriority: "Enter the priority of the incident: High, Medium, Low.",
+    citizenDescribeIncident: "Please describe what happened:",
+    citizenProvideMoreDetails: "Please provide more details.",
+    citizenSelectDateTime: "Select date & time of incident:",
+    citizenEnterLocation: "Enter incident location:",
+    citizenVictimDetails: "Provide victim details (if any):",
+    citizenEvidenceUpload: "Upload any evidence (images, documents, if any):",
+    citizenConfirmation: `Thank you. Your e-FIR request has been created.
+Please visit the nearest police station within 3 days to verify.`,
+    citizenAlreadySubmitted: "Your e-FIR request has already been submitted.",
+    citizenInvalidStep: "Invalid step. Please restart the chat.",
   },
+
   hi: {
+    // --- Police Chatbot ---
     greeting:
       "नमस्ते! मैं आपके पुलिस शिकायतों के लिए AI सहायक हूँ। मैं आपको First Information Report (FIR) दर्ज करने में मदद करूंगा।\n\nयह प्रक्रिया लगभग 10-15 मिनट लेगी। क्या आप शुरू करने के लिए तैयार हैं?",
     namePrompt: "आपका पूरा नाम क्या है?",
@@ -64,8 +110,8 @@ export const translations: Record<LanguageCode, Record<string, string>> = {
     beatPrompt: "बीट नंबर क्या है? (यदि आप नहीं जानते, तो 'Unknown' टाइप करें)",
     directionPrompt: "पुलिस स्टेशन से दिशा और दूरी क्या है? (जैसे '2 किमी उत्तर')",
     incidentTypePrompt: "आप किस प्रकार की घटना की रिपोर्ट करना चाहते हैं?",
-    locationPrompt: "यह घटना कहाँ हुई? कृपया विशिष्ट स्थान विवरण प्रदान करें।",
-    dateTimePrompt: "यह घटना कब हुई? कृपया तारीख और समय प्रदान करें।",
+    locationPrompt: "यह घटना कहाँ हुई? कृपया विशिष्ट स्थान विवरण प्रदान करें:",
+    dateTimePrompt: "यह घटना कब हुई? कृपया तारीख और समय प्रदान करें:",
     informationTypePrompt: "क्या यह जानकारी लिखित रूप में या मौखिक रूप से दी जा रही है?\n\n1. लिखित\n2. मौखिक",
     descriptionPrompt: "कृपया विस्तार से बताएं कि क्या हुआ। (कम से कम 20 वर्ण)",
     reasonForDelayPrompt: "क्या रिपोर्ट करने में कोई देरी हुई? यदि हाँ, तो कारण बताएं।",
@@ -78,8 +124,35 @@ export const translations: Record<LanguageCode, Record<string, string>> = {
     invalidInput: "कृपया मान्य इनपुट प्रदान करें।",
     complaintSubmitted: "आपकी शिकायत पहले ही दर्ज हो चुकी है।",
     startOver: "कोई समस्या नहीं! आइए फिर से शुरू करें।",
+
+    // --- Citizen Chatbot ---
+    citizenGreeting:
+      "नागरिक ई-एफआईआर चैटबोट में आपका स्वागत है!\nकृपया अपनी पसंदीदा भाषा चुनें:\n1. अंग्रेज़ी\n2. हिंदी\n3. मराठी",
+    citizenSelectLanguage: "कृपया 1, 2 या 3 चुनें",
+    citizenName: "आपका पूरा नाम क्या है?",
+    citizenPhone: "कृपया अपना फोन नंबर दें।",
+    citizenAddress: "कृपया अपना पूरा पता दें।",
+    citizenFatherHusband: "आपके पिता या पति का नाम क्या है? (यदि लागू नहीं हो तो 'N/A' टाइप करें)",
+    citizenDOB: "अपनी जन्मतिथि दर्ज करें (DD/MM/YYYY)।",
+    citizenNationality: "आपकी राष्ट्रीयता क्या है?",
+    citizenOccupation: "आपका व्यवसाय क्या है?",
+    citizenDistrict: "जिला दर्ज करें।",
+    citizenIncidentType: `घटना का प्रकार चुनें:\n${INCIDENT_TYPES.map((t, i) => `${i+1}. ${t}`).join("\n")}`,
+    citizenPriority: "घटना की प्राथमिकता दर्ज करें: High, Medium, Low.",
+    citizenDescribeIncident: "कृपया बताएं कि क्या हुआ:",
+    citizenProvideMoreDetails: "कृपया अधिक विवरण दें।",
+    citizenSelectDateTime: "घटना की तिथि और समय चुनें:",
+    citizenEnterLocation: "घटना का स्थान दर्ज करें:",
+    citizenVictimDetails: "पीड़ित का विवरण दें (यदि कोई हो):",
+    citizenEvidenceUpload: "कोई सबूत अपलोड करें (चित्र, दस्तावेज़, यदि कोई हो):",
+    citizenConfirmation: `धन्यवाद। आपकी ई-एफआईआर अनुरोध सफलतापूर्वक बनाई गई है।
+कृपया सत्यापन के लिए 3 दिनों के भीतर नजदीकी पुलिस स्टेशन जाएं।`,
+    citizenAlreadySubmitted: "आपका ई-एफआईआर अनुरोध पहले ही जमा किया जा चुका है।",
+    citizenInvalidStep: "अमान्य चरण। कृपया चैट को पुनः प्रारंभ करें।",
   },
+
   mr: {
+    // --- Police Chatbot ---
     greeting:
       "नमस्कार! मी पोलिस तक्रारीसाठी आपका AI सहायक आहे। मी आपल्याला First Information Report (FIR) दाखल करण्यात मदत करीन।\n\nही प्रक्रिया सुमारे 10-15 मिनिटे लागेल. तुम्ही सुरू करण्यासाठी तयार आहात?",
     namePrompt: "आपले पूर्ण नाव काय आहे?",
@@ -100,7 +173,7 @@ export const translations: Record<LanguageCode, Record<string, string>> = {
     descriptionPrompt: "कृपया विस्तारपूर्वक काय घडले याचे वर्णन करा.",
     reasonForDelayPrompt: "रिपोर्ट करण्यात काही विलंब झाला का?",
     propertiesPrompt: "कोणत्या मालमत्तेचा समावेश होता किंवा चोरी झाली?",
-    priorityPrompt: "आप या घटनेची प्राधान्यता कसे रेट करता?\n\n1. कम\n\n2. मध्यम\n3. उच्च\n4. गंभीर",
+    priorityPrompt: "आप या घटनेची प्राधान्यता कसे रेट करता?\n\n1. कम\n2. मध्यम\n3. उच्च\n4. गंभीर",
     confirmationPrompt: "कृपया आपले FIR तपशील पुनरावलोकन करा:",
     successMessage: "✅ उत्तम! आपली तक्रार दाखल झाली आहे.",
     downloadMessage: "तुम्ही आता 'डाउनलोड करा' बटण वापरून FIR PDF डाउनलोड करू शकता.",
@@ -108,10 +181,39 @@ export const translations: Record<LanguageCode, Record<string, string>> = {
     invalidInput: "कृपया वैध इनपुट प्रदान करा.",
     complaintSubmitted: "आपली तक्रार आधीच दाखल झाली आहे.",
     startOver: "कोणतीही समस्या नाही! पुन्हा सुरू करूया.",
+
+    // --- Citizen Chatbot ---
+    citizenGreeting:
+      "नागरिक ई-एफआयआर चॅटबॉटमध्ये आपले स्वागत आहे!\nकृपया आपली पसंतीची भाषा निवडा:\n1. इंग्रजी\n2. हिंदी\n3. मराठी",
+    citizenSelectLanguage: "कृपया 1, 2 किंवा 3 निवडा",
+    citizenName: "आपले पूर्ण नाव काय आहे?",
+    citizenPhone: "कृपया आपला फोन नंबर द्या.",
+    citizenAddress: "कृपया आपला संपूर्ण पत्ता द्या.",
+    citizenFatherHusband: "आपले वडील किंवा पति यांचे नाव काय आहे? (जर लागू नसेल तर 'N/A')",
+    citizenDOB: "आपली जन्मतारीख प्रविष्ट करा (DD/MM/YYYY).",
+    citizenNationality: "आपली राष्ट्रीयता काय आहे?",
+    citizenOccupation: "आपला व्यवसाय काय आहे?",
+    citizenDistrict: "जिला प्रविष्ट करा.",
+    citizenIncidentType: `घटना प्रकार निवडा:\n${INCIDENT_TYPES.map((t, i) => `${i+1}. ${t}`).join("\n")}`,
+    citizenPriority: "घटना प्राधान्यता प्रविष्ट करा: High, Medium, Low.",
+    citizenDescribeIncident: "कृपया काय घडलं ते सांगा:",
+    citizenProvideMoreDetails: "कृपया अधिक तपशील द्या.",
+    citizenSelectDateTime: "घटनेची तारीख आणि वेळ निवडा:",
+    citizenEnterLocation: "घटनेचे स्थान प्रविष्ट करा:",
+    citizenVictimDetails: "पीडिताचा तपशील द्या (जर असेल तर):",
+    citizenEvidenceUpload: "कोणताही पुरावा अपलोड करा (चित्रे, कागदपत्रे, असल्यास):",
+    citizenConfirmation: `धन्यवाद. तुमची ई-एफआयआर विनंती यशस्वीरित्या तयार केली गेली आहे.
+कृपया पडताळणीसाठी 3 दिवसांच्या आत जवळच्या पोलिस स्टेशनला भेट द्या.`,
+    citizenAlreadySubmitted: "तुमची ई-एफआयआर विनंती आधीच सबमिट झाली आहे.",
+    citizenInvalidStep: "अवैध पायरी. कृपया चॅट पुन्हा सुरू करा।",
   },
 }
 
-export const getTranslation = (key: string, language: LanguageCode, variables?: Record<string, string>): string => {
+export const getTranslation = (
+  key: string,
+  language: LanguageCode,
+  variables?: Record<string, string>
+): string => {
   let text = translations[language]?.[key] || translations.en[key] || key
 
   if (variables) {

@@ -75,30 +75,28 @@ export function BNSReference() {
             </p>
           </div>
           {/* EXPLANATION */}
-         {section.explanation && section.explanation.length > 0 && (
+          {section.explanation && section.explanation.length > 0 && (
             <div className="space-y-2">
-           <p className="text-xs font-medium text-gray-400 mb-1">EXPLANATION</p>
-           <ul className="list-disc list-inside text-sm text-gray-300">
-           {section.explanation.map((exp, idx) => (
-        <li key={idx}>{exp}</li>
-      ))}
-    </ul>
-  </div>
-)}
+              <p className="text-xs font-medium text-gray-400 mb-1">EXPLANATION</p>
+              <ul className="list-disc list-inside text-sm text-gray-300">
+                {section.explanation.map((exp, idx) => (
+                  <li key={idx}>{exp}</li>
+                ))}
+              </ul>
+            </div>
+          )}
 
-{/* ILLUSTRATIONS */}
-{section.illustration && section.illustration.length > 0 && (
-  <div className="space-y-2">
-    <p className="text-xs font-medium text-gray-400 mb-1">ILLUSTRATIONS</p>
-    <ul className="list-disc list-inside text-sm text-gray-300">
-      {section.illustration.map((ill, idx) => (
-        <li key={idx}>{ill}</li>
-      ))}
-    </ul>
-  </div>
-)}
-      
-          
+          {/* ILLUSTRATIONS */}
+          {section.illustration && section.illustration.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-gray-400 mb-1">ILLUSTRATIONS</p>
+              <ul className="list-disc list-inside text-sm text-gray-300">
+                {section.illustration.map((ill, idx) => (
+                  <li key={idx}>{ill}</li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {/* SUB SECTIONS */}
           {section.sub_sections && section.sub_sections.length > 0 && (
@@ -206,26 +204,27 @@ export function BNSReference() {
   )
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen flex flex-col space-y-6 bg-black text-white p-6">
       <div>
         <h2 className="text-2xl font-bold">BNS Reference</h2>
         <p className="text-gray-400">Browse and search all Bharatiya Nyaya Sanhita sections</p>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
         <TabsList className="grid grid-cols-3">
           <TabsTrigger value="search"><Search className="h-4 w-4" /> Search</TabsTrigger>
           <TabsTrigger value="browse"><Filter className="h-4 w-4" /> By Category</TabsTrigger>
           <TabsTrigger value="all"><BookOpen className="h-4 w-4" /> All</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="search">
+        {/* SEARCH TAB */}
+        <TabsContent value="search" className="flex-1 flex flex-col mt-4">
           <Input
             placeholder="Search BNS sections..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
-          <ScrollArea className="h-96 mt-4">
+          <ScrollArea className="flex-1 mt-4">
             {searchResults.map((s) => (
               <BNSCard
                 key={s.section_number}
@@ -239,13 +238,14 @@ export function BNSReference() {
           </ScrollArea>
         </TabsContent>
 
-        <TabsContent value="browse">
+        {/* BROWSE TAB */}
+        <TabsContent value="browse" className="flex-1 flex flex-col mt-4">
           <div className="flex flex-wrap gap-2 mb-4">
             {categories.map((c) => (
               <Button key={c} onClick={() => setSelectedCategory(c)}>{c}</Button>
             ))}
           </div>
-          <ScrollArea className="h-96">
+          <ScrollArea className="flex-1">
             {categoryResults.map((s) => (
               <BNSCard
                 key={s.section_number}
@@ -259,8 +259,9 @@ export function BNSReference() {
           </ScrollArea>
         </TabsContent>
 
-        <TabsContent value="all">
-          <ScrollArea className="h-96">
+        {/* ALL TAB */}
+        <TabsContent value="all" className="flex-1 flex flex-col mt-4">
+          <ScrollArea className="flex-1">
             {allSections.map((s) => (
               <BNSCard
                 key={s.section_number}
