@@ -6,19 +6,23 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Loader2, Eye, EyeOff, Check, X } from "lucide-react"
-import { registerCitizen, validateEmail, validatePhone, validatePassword } from "@/lib/auth"
+import { registerPolice, validateEmail, validatePassword } from "@/lib/auth"
 
-interface CitizenRegisterProps {
+interface PoliceRegisterProps {
   onSuccess: () => void
   onToggleLogin: () => void
 }
 
-export function CitizenRegister({ onSuccess, onToggleLogin }: CitizenRegisterProps) {
+export function PoliceRegister({ onSuccess, onToggleLogin }: PoliceRegisterProps) {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    phone: "",
+    badgeNumber: "",
+    rank: "",
+    station: "",
+    department: "",
     password: "",
     confirmPassword: "",
   })
@@ -53,15 +57,8 @@ export function CitizenRegister({ onSuccess, onToggleLogin }: CitizenRegisterPro
     setError("")
   }
 
-  const formatPhoneNumber = (value: string) => {
-    return value.replace(/\D/g, "").slice(0, 10)
-  }
-
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData((prev) => ({
-      ...prev,
-      phone: formatPhoneNumber(e.target.value),
-    }))
+  const handleSelectChange = (name: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [name]: value }))
     setError("")
   }
 
@@ -83,8 +80,14 @@ export function CitizenRegister({ onSuccess, onToggleLogin }: CitizenRegisterPro
       return
     }
 
-    if (!validatePhone(formData.phone)) {
-      setError("Phone number must be 10 digits")
+    if (!formData.badgeNumber.trim()) {
+      setError("Badge number is required")
+      setIsLoading(false)
+      return
+    }
+
+    if (!formData.rank || !formData.station || !formData.department) {
+      setError("All fields are required")
       setIsLoading(false)
       return
     }
@@ -103,9 +106,8 @@ export function CitizenRegister({ onSuccess, onToggleLogin }: CitizenRegisterPro
     }
 
     try {
-      const result = await registerCitizen(formData)
+      const result = await registerPolice(formData)
       if (result.success) {
-        // Show success and redirect to login after a moment
         setTimeout(onSuccess, 500)
       } else {
         setError(result.message || "Registration failed")
@@ -120,7 +122,10 @@ export function CitizenRegister({ onSuccess, onToggleLogin }: CitizenRegisterPro
   const isFormValid =
     formData.name &&
     validateEmail(formData.email) &&
-    validatePhone(formData.phone) &&
+    formData.badgeNumber &&
+    formData.rank &&
+    formData.station &&
+    formData.department &&
     passwordValidation.length &&
     passwordValidation.uppercase &&
     passwordValidation.lowercase &&
@@ -129,58 +134,126 @@ export function CitizenRegister({ onSuccess, onToggleLogin }: CitizenRegisterPro
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-950 to-gray-900 p-4">
-      <Card className="w-full max-w-md shadow-2xl">
+      <Card className="w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto">
         <CardHeader className="text-center space-y-2">
-          <CardTitle className="text-2xl font-bold">Citizen Registration</CardTitle>
-          <CardDescription>Create an account to file eFIR complaints</CardDescription>
+          <CardTitle className="text-2xl font-bold">Police Officer Registration</CardTitle>
+          <CardDescription>Register a new police officer account</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
+          <form onSubmit={handleSubmit} className="space-y-3">
+            <div className="space-y-1">
+              <Label htmlFor="name" className="text-sm">
+                Full Name
+              </Label>
               <Input
                 id="name"
                 name="name"
-                placeholder="Enter your full name"
+                placeholder="Officer name"
                 value={formData.name}
                 onChange={handleInputChange}
                 required
                 disabled={isLoading}
+                size="sm"
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="email">Email Address</Label>
+            <div className="space-y-1">
+              <Label htmlFor="email" className="text-sm">
+                Email
+              </Label>
               <Input
                 id="email"
                 name="email"
                 type="email"
-                placeholder="Enter your email"
+                placeholder="officer@police.gov"
                 value={formData.email}
                 onChange={handleInputChange}
                 required
                 disabled={isLoading}
+                size="sm"
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number</Label>
+            <div className="space-y-1">
+              <Label htmlFor="badgeNumber" className="text-sm">
+                Badge Number
+              </Label>
               <Input
-                id="phone"
-                name="phone"
-                type="tel"
-                placeholder="10-digit phone number"
-                value={formData.phone}
-                onChange={handlePhoneChange}
-                maxLength={10}
+                id="badgeNumber"
+                name="badgeNumber"
+                placeholder="e.g., PO001"
+                value={formData.badgeNumber}
+                onChange={(e) => {
+                  setFormData((prev) => ({
+                    ...prev,
+                    badgeNumber: e.target.value.toUpperCase(),
+                  }))
+                  setError("")
+                }}
                 required
                 disabled={isLoading}
+                size="sm"
               />
-              <p className="text-xs text-gray-500">Format: 10 digits (e.g., 9876543210)</p>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+            <div className="space-y-1">
+              <Label htmlFor="rank" className="text-sm">
+                Rank
+              </Label>
+              <Select value={formData.rank} onValueChange={(value) => handleSelectChange("rank", value)}>
+                <SelectTrigger id="rank" disabled={isLoading}>
+                  <SelectValue placeholder="Select rank" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Constable">Constable</SelectItem>
+                  <SelectItem value="Head Constable">Head Constable</SelectItem>
+                  <SelectItem value="Police Officer">Police Officer</SelectItem>
+                  <SelectItem value="Sub-Inspector">Sub-Inspector</SelectItem>
+                  <SelectItem value="Inspector">Inspector</SelectItem>
+                  <SelectItem value="Senior Inspector">Senior Inspector</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="station" className="text-sm">
+                Station
+              </Label>
+              <Input
+                id="station"
+                name="station"
+                placeholder="Police station name"
+                value={formData.station}
+                onChange={handleInputChange}
+                required
+                disabled={isLoading}
+                size="sm"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="department" className="text-sm">
+                Department
+              </Label>
+              <Select value={formData.department} onValueChange={(value) => handleSelectChange("department", value)}>
+                <SelectTrigger id="department" disabled={isLoading}>
+                  <SelectValue placeholder="Select department" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Criminal Investigation">Criminal Investigation</SelectItem>
+                  <SelectItem value="Cyber Crime">Cyber Crime</SelectItem>
+                  <SelectItem value="Traffic">Traffic</SelectItem>
+                  <SelectItem value="Community Policing">Community Policing</SelectItem>
+                  <SelectItem value="Special Forces">Special Forces</SelectItem>
+                  <SelectItem value="Narcotics">Narcotics</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="password" className="text-sm">
+                Password
+              </Label>
               <div className="relative">
                 <Input
                   id="password"
@@ -191,83 +264,87 @@ export function CitizenRegister({ onSuccess, onToggleLogin }: CitizenRegisterPro
                   onChange={handleInputChange}
                   required
                   disabled={isLoading}
+                  size="sm"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
                 >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
-              <div className="grid grid-cols-2 gap-2 mt-2 text-xs">
+              <div className="grid grid-cols-2 gap-1 mt-1 text-xs">
                 <div className="flex items-center gap-1">
                   {passwordValidation.length ? (
-                    <Check size={14} className="text-green-600" />
+                    <Check size={12} className="text-green-600" />
                   ) : (
-                    <X size={14} className="text-red-600" />
+                    <X size={12} className="text-red-600" />
                   )}
-                  <span>8+ characters</span>
+                  <span>8+ chars</span>
                 </div>
                 <div className="flex items-center gap-1">
                   {passwordValidation.uppercase ? (
-                    <Check size={14} className="text-green-600" />
+                    <Check size={12} className="text-green-600" />
                   ) : (
-                    <X size={14} className="text-red-600" />
+                    <X size={12} className="text-red-600" />
                   )}
                   <span>Uppercase</span>
                 </div>
                 <div className="flex items-center gap-1">
                   {passwordValidation.lowercase ? (
-                    <Check size={14} className="text-green-600" />
+                    <Check size={12} className="text-green-600" />
                   ) : (
-                    <X size={14} className="text-red-600" />
+                    <X size={12} className="text-red-600" />
                   )}
                   <span>Lowercase</span>
                 </div>
                 <div className="flex items-center gap-1">
                   {passwordValidation.number ? (
-                    <Check size={14} className="text-green-600" />
+                    <Check size={12} className="text-green-600" />
                   ) : (
-                    <X size={14} className="text-red-600" />
+                    <X size={12} className="text-red-600" />
                   )}
                   <span>Number</span>
                 </div>
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
+            <div className="space-y-1">
+              <Label htmlFor="confirmPassword" className="text-sm">
+                Confirm Password
+              </Label>
               <div className="relative">
                 <Input
                   id="confirmPassword"
                   name="confirmPassword"
                   type={showConfirmPassword ? "text" : "password"}
-                  placeholder="Re-enter your password"
+                  placeholder="Re-enter password"
                   value={formData.confirmPassword}
                   onChange={handleInputChange}
                   required
                   disabled={isLoading}
+                  size="sm"
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
                 >
-                  {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
               {formData.confirmPassword && (
                 <div className="text-xs flex items-center gap-1">
                   {formData.password === formData.confirmPassword ? (
                     <>
-                      <Check size={14} className="text-green-600" />
-                      <span className="text-green-600">Passwords match</span>
+                      <Check size={12} className="text-green-600" />
+                      <span className="text-green-600">Match</span>
                     </>
                   ) : (
                     <>
-                      <X size={14} className="text-red-600" />
-                      <span className="text-red-600">Passwords don't match</span>
+                      <X size={12} className="text-red-600" />
+                      <span className="text-red-600">No match</span>
                     </>
                   )}
                 </div>
@@ -275,14 +352,14 @@ export function CitizenRegister({ onSuccess, onToggleLogin }: CitizenRegisterPro
             </div>
 
             {error && (
-              <Alert variant="destructive">
+              <Alert variant="destructive" className="text-sm">
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
 
             <Button
               type="submit"
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+              className="w-full bg-red-600 hover:bg-red-700 text-white"
               disabled={isLoading || !isFormValid}
             >
               {isLoading ? (
@@ -291,16 +368,16 @@ export function CitizenRegister({ onSuccess, onToggleLogin }: CitizenRegisterPro
                   Registering...
                 </>
               ) : (
-                "Create Account"
+                "Register Officer"
               )}
             </Button>
 
             <div className="text-center text-sm text-gray-600">
-              Already have an account?{" "}
+              Already registered?{" "}
               <button
                 type="button"
                 onClick={onToggleLogin}
-                className="text-blue-600 hover:text-blue-700 font-semibold"
+                className="text-red-600 hover:text-red-700 font-semibold"
               >
                 Sign in
               </button>
