@@ -3,6 +3,8 @@ node_modules/
 .next/
 out/
 
+env/
+
 # Logs
 npm-debug.log*
 pnpm-debug.log*
