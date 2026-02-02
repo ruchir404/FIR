@@ -1,7 +1,24 @@
+import {
+  collection,
+  doc,
+  addDoc,
+  getDocs,
+  getDoc,
+  updateDoc,
+  query,
+  orderBy,
+  serverTimestamp,
+  Timestamp,
+} from "firebase/firestore"
+import { db } from "@/lib/FirebaseConfig"
+
+/* =======================
+   TYPES
+======================= */
+
 export interface FIR {
   id: string
   firNumber: string
-  dateTime: string
   complainantName: string
   complainantPhone: string
   complainantAddress: string
@@ -13,10 +30,11 @@ export interface FIR {
   status: "Registered" | "Under Investigation" | "Evidence Collection" | "Pending" | "Closed"
   assignedOfficer: string
   bnsSection?: string
-  bnsSections?: string[] // Array of suggested BNS sections in "Section 376 - Rape" format
+  bnsSections?: string[]
   createdBy: string
   createdAt: string
   updatedAt: string
+
   fatherHusbandName?: string
   dateOfBirth?: string
   nationality?: string
@@ -39,6 +57,7 @@ export interface FIRFormData {
   incidentDateTime: string
   description: string
   priority: "Low" | "Medium" | "High" | "Critical"
+
   fatherHusbandName?: string
   dateOfBirth?: string
   nationality?: string
@@ -52,163 +71,137 @@ export interface FIRFormData {
   propertiesInvolved?: string
 }
 
-// Mock FIR data
-const mockFIRs: FIR[] = [
-  {
-    id: "1",
-    firNumber: "FIR001/2024",
-    dateTime: "2024-01-15T10:30:00Z",
-    complainantName: "Rajesh Kumar",
-    complainantPhone: "+91-9876543210",
-    complainantAddress: "123 Main Street, Delhi",
-    incidentType: "Theft",
-    incidentLocation: "Market Street, Central Delhi",
-    incidentDateTime: "2024-01-15T08:00:00Z",
-    description: "Mobile phone and wallet stolen from pocket while shopping in crowded market area.",
-    priority: "High",
-    status: "Under Investigation",
-    assignedOfficer: "PO001",
-    bnsSection: "Section 303 - Theft",
-    bnsSections: ["Section 303 - Theft", "Section 307 - Attempt to commit theft"],
-    createdBy: "PO001",
-    createdAt: "2024-01-15T10:30:00Z",
-    updatedAt: "2024-01-15T10:30:00Z",
-  },
-  {
-    id: "2",
-    firNumber: "FIR002/2024",
-    dateTime: "2024-01-14T14:15:00Z",
-    complainantName: "Priya Sharma",
-    complainantPhone: "+91-9876543211",
-    complainantAddress: "456 Park Avenue, Delhi",
-    incidentType: "Assault",
-    incidentLocation: "Park Avenue, South Delhi",
-    incidentDateTime: "2024-01-14T12:00:00Z",
-    description: "Physical assault by unknown person during evening walk in the park.",
-    priority: "Medium",
-    status: "Evidence Collection",
-    assignedOfficer: "PO001",
-    bnsSection: "Section 115 - Voluntarily causing hurt",
-    bnsSections: ["Section 115 - Voluntarily causing hurt"],
-    createdBy: "SI001",
-    createdAt: "2024-01-14T14:15:00Z",
-    updatedAt: "2024-01-14T14:15:00Z",
-  },
-  {
-    id: "3",
-    firNumber: "FIR003/2024",
-    dateTime: "2024-01-13T16:45:00Z",
-    complainantName: "Amit Patel",
-    complainantPhone: "+91-9876543212",
-    complainantAddress: "789 Business District, Delhi",
-    incidentType: "Fraud",
-    incidentLocation: "Online/Digital",
-    incidentDateTime: "2024-01-10T00:00:00Z",
-    description: "Online banking fraud - unauthorized transactions totaling Rs. 50,000 from savings account.",
-    priority: "Low",
-    status: "Pending",
-    assignedOfficer: "PO001",
-    bnsSection: "Section 318 - Cheating",
-    bnsSections: ["Section 318 - Cheating"],
-    createdBy: "PO001",
-    createdAt: "2024-01-13T16:45:00Z",
-    updatedAt: "2024-01-13T16:45:00Z",
-  },
-]
+/* =======================
+   COLLECTION REF
+======================= */
 
-const firStorage: FIR[] = [...mockFIRs]
+const firsRef = collection(db, "firs")
+
+/* =======================
+   HELPERS
+======================= */
+
+const formatTimestamp = (ts?: Timestamp) =>
+  ts ? ts.toDate().toISOString() : new Date().toISOString()
+
+const generateFIRNumber = async () => {
+  const snapshot = await getDocs(firsRef)
+  const count = snapshot.size + 1
+  const year = new Date().getFullYear()
+  return `FIR${String(count).padStart(3, "0")}/${year}`
+}
+
+/* =======================
+   READ
+======================= */
 
 export const getAllFIRs = async (): Promise<FIR[]> => {
-  await new Promise((resolve) => setTimeout(resolve, 500))
-  return [...firStorage].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  )
+  const q = query(firsRef, orderBy("createdAt", "desc"))
+  const snapshot = await getDocs(q)
+
+  return snapshot.docs.map((docSnap) => {
+    const data = docSnap.data()
+    return {
+      id: docSnap.id,
+      ...data,
+      createdAt: formatTimestamp(data.createdAt),
+      updatedAt: formatTimestamp(data.updatedAt),
+    } as FIR
+  })
 }
 
 export const getFIRById = async (id: string): Promise<FIR | null> => {
-  await new Promise((resolve) => setTimeout(resolve, 300))
-  return firStorage.find((fir) => fir.id === id) || null
+  const ref = doc(db, "firs", id)
+  const snap = await getDoc(ref)
+
+  if (!snap.exists()) return null
+
+  const data = snap.data()
+  return {
+    id: snap.id,
+    ...data,
+    createdAt: formatTimestamp(data.createdAt),
+    updatedAt: formatTimestamp(data.updatedAt),
+  } as FIR
 }
+
+/* =======================
+   CREATE
+======================= */
 
 export const createFIR = async (
   formData: FIRFormData,
   createdBy: string,
-  bnsSections?: string[]
+  bnsSections: string[] = []
 ): Promise<FIR> => {
-  await new Promise((resolve) => setTimeout(resolve, 1000))
+  const firNumber = await generateFIRNumber()
 
-  const newFIR: FIR = {
-    id: Date.now().toString(),
-    firNumber: `FIR${String(firStorage.length + 1).padStart(3, "0")}/2024`,
-    dateTime: new Date().toISOString(),
+  const payload = {
+    firNumber,
     ...formData,
+
     status: "Registered",
     assignedOfficer: createdBy,
-    bnsSection: bnsSections?.[0], // Primary section
-    bnsSections: bnsSections?.map((s) => s), // Ensure array of strings
+
+    bnsSection: bnsSections[0] || "",
+    bnsSections,
+
     createdBy,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
   }
 
-  firStorage.push(newFIR)
-  return newFIR
+  const docRef = await addDoc(firsRef, payload)
+  const savedSnap = await getDoc(docRef)
+
+  const savedData = savedSnap.data()!
+
+  return {
+    id: docRef.id,
+    ...savedData,
+    createdAt: formatTimestamp(savedData.createdAt),
+    updatedAt: formatTimestamp(savedData.updatedAt),
+  } as FIR
 }
+
+/* =======================
+   UPDATE
+======================= */
 
 export const updateFIR = async (
   id: string,
   formData: FIRFormData,
-  bnsSections?: string[]
-): Promise<FIR | null> => {
-  await new Promise((resolve) => setTimeout(resolve, 500))
+  bnsSections: string[] = []
+): Promise<void> => {
+  const ref = doc(db, "firs", id)
 
-  const firIndex = firStorage.findIndex((fir) => fir.id === id)
-  if (firIndex === -1) return null
-
-  firStorage[firIndex] = {
-    ...firStorage[firIndex],
+  await updateDoc(ref, {
     ...formData,
-    bnsSection: bnsSections?.[0],
-    bnsSections: bnsSections?.map((s) => s),
-    updatedAt: new Date().toISOString(),
-  }
-
-  return firStorage[firIndex]
+    bnsSection: bnsSections[0] || "",
+    bnsSections,
+    updatedAt: serverTimestamp(),
+  })
 }
+
+/* =======================
+   STATUS UPDATE
+======================= */
 
 export const updateFIRStatus = async (
   id: string,
   status: FIR["status"]
-): Promise<FIR | null> => {
-  await new Promise((resolve) => setTimeout(resolve, 500))
+): Promise<void> => {
+  const ref = doc(db, "firs", id)
 
-  const firIndex = firStorage.findIndex((fir) => fir.id === id)
-  if (firIndex === -1) return null
-
-  firStorage[firIndex] = {
-    ...firStorage[firIndex],
+  await updateDoc(ref, {
     status,
-    updatedAt: new Date().toISOString(),
-  }
-
-  return firStorage[firIndex]
+    updatedAt: serverTimestamp(),
+  })
 }
 
-export const searchFIRs = async (query: string): Promise<FIR[]> => {
-  await new Promise((resolve) => setTimeout(resolve, 300))
-
-  if (!query.trim()) return getAllFIRs()
-
-  const lowercaseQuery = query.toLowerCase()
-  return firStorage.filter(
-    (fir) =>
-      fir.firNumber.toLowerCase().includes(lowercaseQuery) ||
-      fir.complainantName.toLowerCase().includes(lowercaseQuery) ||
-      fir.incidentType.toLowerCase().includes(lowercaseQuery) ||
-      fir.incidentLocation.toLowerCase().includes(lowercaseQuery) ||
-      fir.description.toLowerCase().includes(lowercaseQuery)
-  )
-}
+/* =======================
+   CONSTANTS
+======================= */
 
 export const getIncidentTypes = () => [
   "Theft",

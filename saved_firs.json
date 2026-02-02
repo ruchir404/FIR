@@ -1,0 +1,35 @@
+[
+  {
+    "id": "1768716810937",
+    "firNumber": "FIR598/2026",
+    "dateTime": "2026-01-18T06:13:30.938Z",
+    "complainantName": "Ruchir Chitre",
+    "complainantPhone": "888888",
+    "complainantAddress": "601 Swapnapurti, Vishnunagar",
+    "incidentType": "Other",
+    "incidentLocation": "thane",
+    "incidentDateTime": "2026-02-22T20:20",
+    "description": "child marriage",
+    "priority": "Medium",
+    "fatherHusbandName": "Milind",
+    "dateOfBirth": "2004-01-14",
+    "nationality": "Indian",
+    "occupation": "Engineer",
+    "policeStation": "Thane",
+    "district": "Thane",
+    "directionDistance": "5",
+    "beatNumber": "11",
+    "informationType": "Written",
+    "reasonForDelay": "",
+    "propertiesInvolved": "child marriage",
+    "bnsSection": "82",
+    "status": "Registered",
+    "assignedOfficer": "PO001",
+    "bnsSections": [
+      "82"
+    ],
+    "createdBy": "PO001",
+    "createdAt": "2026-01-18T06:13:30.938Z",
+    "updatedAt": "2026-01-18T06:13:30.938Z"
+  }
+]

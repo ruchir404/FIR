@@ -8,19 +8,18 @@ import { RoleSelector } from "@/components/auth/role-selector"
 import { CitizenLogin } from "@/components/auth/citizen-login"
 import { CitizenRegister } from "@/components/auth/citizen-register"
 import { PoliceLogin } from "@/components/auth/police-login"
+import { PoliceRegister } from "@/components/auth/police-register"
 
 // Dashboards
 import { PoliceDashboard } from "@/components/police/police-dashboard"
 import { CitizenDashboard } from "@/components/citizen/citizen-dashboard"
 
 export default function Home() {
-  // 🔹 State
   const [isLoading, setIsLoading] = useState(true)
   const [selectedRole, setSelectedRole] = useState<"citizen" | "police" | null>(null)
-  const [citizenView, setCitizenView] = useState<"login" | "register">("login")
+  const [authView, setAuthView] = useState<"login" | "register">("login")
   const [currentUser, setCurrentUser] = useState<any>(null)
 
-  // 🔹 On load: fetch user & role
   useEffect(() => {
     const user = getCurrentUser()
     setCurrentUser(user)
@@ -31,23 +30,36 @@ export default function Home() {
     setIsLoading(false)
   }, [])
 
-  // 🔹 Logout
   const handleLogout = () => {
     logout()
     localStorage.removeItem("selectedRole")
     setCurrentUser(null)
     setSelectedRole(null)
-    setCitizenView("login")
+    setAuthView("login")
   }
 
-  // 🔹 Loading
+  const handleRoleChange = (newRole: "citizen" | "police") => {
+    logout()
+    localStorage.removeItem("selectedRole")
+    setCurrentUser(null)
+    setAuthView("login")
+    setSelectedRole(newRole)
+  }
+
   if (isLoading) {
-    return <div className="p-6 text-center">Loading...</div>
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-950">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-400">Loading...</p>
+        </div>
+      </div>
+    )
   }
 
-  // 🔹 Logged in dashboard
+  // Logged in - show dashboard
   if (currentUser) {
-    const isPolice = currentUser.role === "officer" || currentUser.role === "admin"
+    const isPolice = currentUser.role === "officer"
 
     return isPolice ? (
       <PoliceDashboard user={currentUser} onLogout={handleLogout} />
@@ -56,29 +68,39 @@ export default function Home() {
     )
   }
 
-  // 🔹 Role selection
+  // Role selection
   if (!selectedRole) {
     return <RoleSelector onSelectRole={setSelectedRole} />
   }
 
-  // 🔹 Citizen login/register flow
+  // Citizen auth flow
   if (selectedRole === "citizen") {
-    return citizenView === "register" ? (
+    return authView === "register" ? (
       <CitizenRegister
-        onSuccess={() => setCitizenView("login")}
-        onToggleLogin={() => setCitizenView("login")}
+        onSuccess={() => setAuthView("login")}
+        onToggleLogin={() => setAuthView("login")}
       />
     ) : (
       <CitizenLogin
         onLoginSuccess={(user) => setCurrentUser(user)}
-        onToggleRegister={() => setCitizenView("register")}
+        onToggleRegister={() => setAuthView("register")}
       />
     )
   }
 
-  // 🔹 Police login flow
+  // Police auth flow
   if (selectedRole === "police") {
-    return <PoliceLogin onLoginSuccess={(user) => setCurrentUser(user)} />
+    return authView === "register" ? (
+      <PoliceRegister
+        onSuccess={() => setAuthView("login")}
+        onToggleLogin={() => setAuthView("login")}
+      />
+    ) : (
+      <PoliceLogin
+        onLoginSuccess={(user) => setCurrentUser(user)}
+        onToggleRegister={() => setAuthView("register")}
+      />
+    )
   }
 
   return null

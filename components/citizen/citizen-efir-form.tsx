@@ -20,6 +20,16 @@ interface CitizenEFIRFormProps {
 
 export function CitizenEFIRForm({ citizen, onSuccess, onCancel }: CitizenEFIRFormProps) {
   const [formData, setFormData] = useState({
+    /* COMPLAINANT */
+    citizenName: citizen.name || "",
+    fatherOrHusbandName: "",
+    dob: "",
+    nationality: "Indian",
+    occupation: "",
+    citizenPhone: citizen.phone || "",
+    address: "",
+
+    /* INCIDENT */
     incidentType: "",
     incidentDescription: "",
     incidentDate: "",
@@ -30,6 +40,7 @@ export function CitizenEFIRForm({ citizen, onSuccess, onCancel }: CitizenEFIRFor
     beatNumber: "",
     bnsSection: [] as string[],
   })
+
   const [isLoading, setIsLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -37,13 +48,31 @@ export function CitizenEFIRForm({ citizen, onSuccess, onCancel }: CitizenEFIRFor
     setIsLoading(true)
 
     try {
-      createEFIR({
+      await createEFIR({
         citizenId: citizen.id,
-        citizenName: citizen.name,
-        citizenPhone: citizen.phone,
         citizenEmail: citizen.email,
-        ...formData,
+
+        /* COMPLAINANT */
+        citizenName: formData.citizenName,
+        fatherOrHusbandName: formData.fatherOrHusbandName,
+        dob: formData.dob,
+        nationality: formData.nationality,
+        occupation: formData.occupation,
+        citizenPhone: formData.citizenPhone,
+        address: formData.address,
+
+        /* INCIDENT */
+        incidentType: formData.incidentType,
+        incidentDescription: formData.incidentDescription,
+        incidentDate: formData.incidentDate,
+        incidentTime: formData.incidentTime,
+        location: formData.location,
+        district: formData.district,
+        policeStation: formData.policeStation,
+        beatNumber: formData.beatNumber,
+        bnsSection: formData.bnsSection,
       })
+
       onSuccess()
     } catch (err) {
       console.error(err)
@@ -64,6 +93,88 @@ export function CitizenEFIRForm({ citizen, onSuccess, onCancel }: CitizenEFIRFor
           <CardTitle>File New eFIR</CardTitle>
         </CardHeader>
         <CardContent>
+
+          {/* =========================
+   COMPLAINANT DETAILS
+========================= */}
+          <h3 className="text-lg font-semibold">
+            2. Complainant / Informant Details
+          </h3>
+
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Full Name *</Label>
+              <Input
+                value={formData.citizenName}
+                onChange={(e) =>
+                  setFormData({ ...formData, citizenName: e.target.value })
+                }
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Father&apos;s / Husband&apos;s Name</Label>
+              <Input
+                value={formData.fatherOrHusbandName}
+                onChange={(e) =>
+                  setFormData({ ...formData, fatherOrHusbandName: e.target.value })
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Date of Birth</Label>
+              <Input
+                type="date"
+                value={formData.dob}
+                onChange={(e) =>
+                  setFormData({ ...formData, dob: e.target.value })
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Nationality</Label>
+              <Input
+                value={formData.nationality}
+                onChange={(e) =>
+                  setFormData({ ...formData, nationality: e.target.value })
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Occupation</Label>
+              <Input
+                value={formData.occupation}
+                onChange={(e) =>
+                  setFormData({ ...formData, occupation: e.target.value })
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Phone Number *</Label>
+              <Input
+                value={formData.citizenPhone}
+                required
+                disabled
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Address *</Label>
+            <Textarea
+              value={formData.address}
+              onChange={(e) =>
+                setFormData({ ...formData, address: e.target.value })
+              }
+              required
+            />
+          </div>
+
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">

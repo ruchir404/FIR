@@ -1,7 +1,13 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { useEffect, useState } from "react"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
@@ -15,77 +21,186 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import { Clock, CheckCircle, XCircle, AlertCircle } from "lucide-react"
-import { getPendingEFIRs, updateEFIRStatus, checkAndExpireEFIRs, type EFIR } from "@/lib/efir"
-import { getCurrentUser } from "@/lib/auth"
 
-export function EFIRRequests() {
+import {
+  getPendingEFIRsByStation,
+  updateEFIRStatus,
+  type EFIR,
+} from "@/lib/efir"
+
+import { getCurrentUser } from "@/lib/auth"
+import { mapEFIRToFIRForm } from "@/lib/efir-to-fir"
+
+/* ======================================================
+   PROPS
+====================================================== */
+
+interface EFIRRequestsProps {
+  onConvertToFIR: (formData: any) => void
+}
+
+/* ======================================================
+   COMPONENT
+====================================================== */
+
+export function EFIRRequests({ onConvertToFIR }: EFIRRequestsProps) {
   const [efirs, setEFIRs] = useState<EFIR[]>([])
   const [selectedEFIR, setSelectedEFIR] = useState<EFIR | null>(null)
-  const [action, setAction] = useState<"accept" | "reject" | null>(null)
   const [remarks, setRemarks] = useState("")
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isProcessing, setIsProcessing] = useState(false)
+
   const user = getCurrentUser()
+
+  /* ======================================================
+     LOAD EFIRS (STATION-WISE)
+  ====================================================== */
+
+  const loadEFIRs = async () => {
+    if (!user?.station) {
+      setIsLoading(false)
+      return
+    }
+
+    setIsLoading(true)
+    try {
+      const pending = await getPendingEFIRsByStation("Vakola")
+      setEFIRs(pending)
+    } catch (err) {
+      console.error("Failed to load eFIRs", err)
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   useEffect(() => {
     loadEFIRs()
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.station])
 
-  const loadEFIRs = () => {
-    checkAndExpireEFIRs()
-    const pending = getPendingEFIRs()
-    setEFIRs(pending)
+  /* ======================================================
+     ACCEPT → CONVERT TO FIR
+  ====================================================== */
+
+  const handleAccept = async (efir: EFIR) => {
+    if (!user?.badgeNumber) {
+      alert("Police session expired. Please login again.")
+      return
+    }
+
+    setIsProcessing(true)
+
+    try {
+      const firFormData = mapEFIRToFIRForm(efir)
+
+      await updateEFIRStatus(
+        efir.id,
+        "accepted",
+        "Converted to FIR",
+        user.badgeNumber
+      )
+
+      onConvertToFIR(firFormData)
+      await loadEFIRs()
+    } catch (err) {
+      console.error("Failed to convert eFIR", err)
+    } finally {
+      setIsProcessing(false)
+    }
   }
 
-  const handleAccept = (efir: EFIR) => {
-    setSelectedEFIR(efir)
-    setAction("accept")
-    setRemarks("")
-    setIsDialogOpen(true)
-  }
+  /* ======================================================
+     REJECT FLOW
+  ====================================================== */
 
   const handleReject = (efir: EFIR) => {
     setSelectedEFIR(efir)
-    setAction("reject")
     setRemarks("")
     setIsDialogOpen(true)
   }
 
-  const submitAction = () => {
-    if (!selectedEFIR || !action) return
+  const submitReject = async () => {
+    if (!selectedEFIR || !user?.badgeNumber) return
 
-    const newStatus = action === "accept" ? "accepted" : "rejected"
-    updateEFIRStatus(selectedEFIR.id, newStatus, remarks, user?.badgeNumber)
+    setIsProcessing(true)
 
-    loadEFIRs()
-    setIsDialogOpen(false)
-    setSelectedEFIR(null)
-    setAction(null)
-    setRemarks("")
+    try {
+      await updateEFIRStatus(
+        selectedEFIR.id,
+        "rejected",
+        remarks,
+        user.badgeNumber
+      )
+
+      await loadEFIRs()
+      setIsDialogOpen(false)
+      setSelectedEFIR(null)
+      setRemarks("")
+    } catch (err) {
+      console.error("Failed to reject eFIR", err)
+    } finally {
+      setIsProcessing(false)
+    }
   }
+
+  /* ======================================================
+     DEADLINE STATUS
+  ====================================================== */
 
   const getDeadlineStatus = (deadline: string) => {
     const now = new Date()
     const deadlineDate = new Date(deadline)
-    const daysRemaining = Math.ceil((deadlineDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+    const daysRemaining = Math.ceil(
+      (deadlineDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+    )
 
-    if (daysRemaining < 0) return { color: "text-gray-600", icon: AlertCircle, text: "Expired" }
-    if (daysRemaining <= 1) return { color: "text-red-600", icon: AlertCircle, text: `${daysRemaining} day left` }
-    return { color: "text-blue-600", icon: Clock, text: `${daysRemaining} days left` }
+    if (daysRemaining < 0)
+      return { color: "text-gray-600", icon: AlertCircle, text: "Expired" }
+
+    if (daysRemaining <= 1)
+      return {
+        color: "text-red-600",
+        icon: AlertCircle,
+        text: `${daysRemaining} day left`,
+      }
+
+    return {
+      color: "text-blue-600",
+      icon: Clock,
+      text: `${daysRemaining} days left`,
+    }
+  }
+
+  /* ======================================================
+     UI
+  ====================================================== */
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center py-10">
+        <Clock className="animate-spin h-6 w-6 text-muted-foreground" />
+      </div>
+    )
   }
 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold mb-2">Citizen eFIR Requests</h2>
-        <p className="text-muted-foreground">Review and process citizen eFIR submissions</p>
+        <h2 className="text-2xl font-bold mb-1">Citizen eFIR Requests</h2>
+        <p className="text-muted-foreground">
+          Pending eFIRs for {user?.station}
+        </p>
       </div>
 
       {efirs.length === 0 ? (
         <Card>
           <CardContent className="p-8 text-center">
             <CheckCircle className="h-12 w-12 mx-auto mb-4 text-green-600" />
-            <p className="text-lg font-medium">All Caught Up!</p>
-            <p className="text-muted-foreground mt-2">No pending eFIR requests at this time</p>
+            <p className="text-lg font-medium">All caught up</p>
+            <p className="text-muted-foreground">
+              No pending eFIR requests
+            </p>
           </CardContent>
         </Card>
       ) : (
@@ -95,64 +210,76 @@ export function EFIRRequests() {
             const DeadlineIcon = deadline.icon
 
             return (
-              <Card key={efir.id} className="overflow-hidden">
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <CardTitle className="text-lg">{efir.id}</CardTitle>
-                      <CardDescription className="mt-1">
-                        Filed by {efir.citizenName} • {efir.citizenPhone}
+              <Card key={efir.id}>
+                <CardHeader>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle>{efir.id}</CardTitle>
+                      <CardDescription>
+                        {efir.citizenName} • {efir.citizenPhone}
                       </CardDescription>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <DeadlineIcon className={`h-4 w-4 ${deadline.color}`} />
-                      <span className={`text-sm font-medium ${deadline.color}`}>{deadline.text}</span>
+
+                    <div
+                      className={`flex items-center gap-1 ${deadline.color}`}
+                    >
+                      <DeadlineIcon className="h-4 w-4" />
+                      <span className="text-sm">{deadline.text}</span>
                     </div>
                   </div>
                 </CardHeader>
 
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
-                      <Label className="text-xs text-muted-foreground">Incident Type</Label>
-                      <p className="font-medium">{efir.incidentType}</p>
+                      <Label className="text-xs">Incident Type</Label>
+                      <p>{efir.incidentType}</p>
                     </div>
                     <div>
-                      <Label className="text-xs text-muted-foreground">Location</Label>
-                      <p className="font-medium">{efir.location}</p>
+                      <Label className="text-xs">Location</Label>
+                      <p>{efir.location}</p>
                     </div>
                     <div>
-                      <Label className="text-xs text-muted-foreground">District</Label>
-                      <p className="font-medium">{efir.district}</p>
+                      <Label className="text-xs">District</Label>
+                      <p>{efir.district}</p>
                     </div>
                     <div>
-                      <Label className="text-xs text-muted-foreground">Police Station</Label>
-                      <p className="font-medium">{efir.policeStation}</p>
+                      <Label className="text-xs">Police Station</Label>
+                      <p>{efir.policeStation}</p>
                     </div>
                   </div>
 
                   <div>
-                    <Label className="text-xs text-muted-foreground">Description</Label>
-                    <p className="text-sm mt-1">{efir.incidentDescription}</p>
+                    <Label className="text-xs">Description</Label>
+                    <p className="text-sm mt-1">
+                      {efir.incidentDescription}
+                    </p>
                   </div>
 
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Suggested BNS Sections</Label>
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {efir.bnsSection.map((section) => (
-                        <Badge key={section} variant="secondary">
-                          {section}
-                        </Badge>
-                      ))}
-                    </div>
+                  <div className="flex flex-wrap gap-2">
+                    {efir.bnsSection.map((section) => (
+                      <Badge key={section} variant="secondary">
+                        {section}
+                      </Badge>
+                    ))}
                   </div>
 
-                  <div className="flex space-x-2 pt-4">
-                    <Button onClick={() => handleAccept(efir)} className="flex-1" variant="default">
+                  <div className="flex gap-2 pt-4">
+                    <Button
+                      className="flex-1"
+                      disabled={isProcessing}
+                      onClick={() => handleAccept(efir)}
+                    >
                       <CheckCircle className="h-4 w-4 mr-2" />
-                      Accept
+                      Convert to FIR
                     </Button>
-                    <Button onClick={() => handleReject(efir)} className="flex-1" variant="destructive">
+
+                    <Button
+                      variant="destructive"
+                      className="flex-1"
+                      disabled={isProcessing}
+                      onClick={() => handleReject(efir)}
+                    >
                       <XCircle className="h-4 w-4 mr-2" />
                       Reject
                     </Button>
@@ -164,38 +291,36 @@ export function EFIRRequests() {
         </div>
       )}
 
-      {/* Action Dialog */}
+      {/* REJECT DIALOG */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle>{action === "accept" ? "Accept eFIR" : "Reject eFIR"}</DialogTitle>
+            <DialogTitle>Reject eFIR</DialogTitle>
             <DialogDescription>
               {selectedEFIR?.id} • {selectedEFIR?.citizenName}
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="remarks">Remarks (optional)</Label>
-              <Textarea
-                id="remarks"
-                placeholder={
-                  action === "accept" ? "Enter acceptance remarks or instructions..." : "Enter reason for rejection..."
-                }
-                value={remarks}
-                onChange={(e) => setRemarks(e.target.value)}
-                className="mt-2"
-                rows={4}
-              />
-            </div>
-          </div>
+          <Label>Reason for rejection</Label>
+          <Textarea
+            rows={4}
+            value={remarks}
+            onChange={(e) => setRemarks(e.target.value)}
+          />
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setIsDialogOpen(false)}
+            >
               Cancel
             </Button>
-            <Button onClick={submitAction} variant={action === "accept" ? "default" : "destructive"}>
-              {action === "accept" ? "Accept eFIR" : "Reject eFIR"}
+            <Button
+              variant="destructive"
+              disabled={isProcessing}
+              onClick={submitReject}
+            >
+              Reject eFIR
             </Button>
           </DialogFooter>
         </DialogContent>

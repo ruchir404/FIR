@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Separator } from "@/components/ui/separator"
-import { Loader2, Save, X } from "lucide-react"
+import { Loader2, Save, X, MapPin } from "lucide-react"
 import { createFIR, updateFIR, getIncidentTypes, type FIRFormData } from "@/lib/fir"
 import { getCurrentUser } from "@/lib/auth"
 import type { FIR } from "@/lib/types" // Import FIR type
@@ -20,35 +20,69 @@ interface FIRFormProps {
   onSuccess: () => void
   onCancel: () => void
   editingFIR?: FIR | null
+  initialData?: Partial<FIRFormData> | null
 }
 
-export function FIRForm({ onSuccess, onCancel, editingFIR }: FIRFormProps) {
+
+export function FIRForm({
+  onSuccess,
+  onCancel,
+  editingFIR,
+  initialData,
+}: FIRFormProps) {
   const user = getCurrentUser()
+  
+  // const [formData, setFormData] = useState<FIRFormData>({
+  //   complainantName: "",
+  //   complainantPhone: "",
+  //   complainantAddress: "",
+  //   incidentType: "",
+  //   incidentLocation: "",
+  //   incidentDateTime: "",
+  //   description: "",
+  //   priority: "Medium",
+  //   fatherHusbandName: "",
+  //   dateOfBirth: "",
+  //   nationality: "Indian",
+  //   occupation: "",
+  //   policeStation: "",
+  //   district: "",
+  //   directionDistance: "",
+  //   beatNumber: "",
+  //   informationType: "Written",
+  //   reasonForDelay: "",
+  //   propertiesInvolved: "",
+  // })
+
   const [formData, setFormData] = useState<FIRFormData>({
-    complainantName: "",
-    complainantPhone: "",
-    complainantAddress: "",
-    incidentType: "",
-    incidentLocation: "",
-    incidentDateTime: "",
-    description: "",
-    priority: "Medium",
-    fatherHusbandName: "",
-    dateOfBirth: "",
-    nationality: "Indian",
-    occupation: "",
-    policeStation: "",
-    district: "",
-    directionDistance: "",
-    beatNumber: "",
-    informationType: "Written",
-    reasonForDelay: "",
-    propertiesInvolved: "",
+    complainantName: initialData?.complainantName || "",
+    complainantPhone: initialData?.complainantPhone || "",
+    complainantAddress: initialData?.complainantAddress || "",
+    incidentType: initialData?.incidentType || "",
+    incidentLocation: initialData?.incidentLocation || "",
+    incidentDateTime: initialData?.incidentDateTime || "",
+    description: initialData?.description || "",
+    priority: initialData?.priority || "Medium",
+    policeStation: initialData?.policeStation,
+    district: initialData?.district,
+    beatNumber: initialData?.beatNumber,
+    informationType: initialData?.informationType,
+    reasonForDelay: initialData?.reasonForDelay,
+    propertiesInvolved: initialData?.propertiesInvolved,
   })
+
+
   const [selectedBNSSections, setSelectedBNSSections] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
+  const [locating, setLocating] = useState(false)
+
+  useEffect(() => {
+    if (initialData) {
+      setFormData((prev) => ({ ...prev, ...initialData }))
+    }
+  }, [initialData])
 
   useEffect(() => {
     if (editingFIR) {
@@ -112,6 +146,91 @@ export function FIRForm({ onSuccess, onCancel, editingFIR }: FIRFormProps) {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
+  const getUserLocation = (): Promise<{ lat: number; lng: number }> => {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error("Geolocation not supported"))
+        return
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (position) =>
+          resolve({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          }),
+        (error) => reject(error),
+        { enableHighAccuracy: true }
+      )
+    })
+  }
+
+  // const handleAutoFillPoliceStation = async () => {
+  //   try {
+  //     setLocating(true)
+
+  //     const { lat, lng } = await getUserLocation()
+
+  //     const res = await fetch("/api/nearest-police-station", {
+  //       method: "POST",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify({ lat, lng }),
+  //     })
+
+  //     const data = await res.json()
+  //     if (!res.ok) throw new Error(data.error)
+
+  //     setFormData((prev) => ({
+  //       ...prev,
+  //       policeStation: data.name,
+  //       directionDistance: data.address,
+  //     }))
+  //   } catch (err: any) {
+  //     if (err?.code === 1) {
+  //       alert("Location permission denied. Please enter details manually.")
+  //     } else {
+  //       alert("Unable to detect nearest police station.")
+  //     }
+  //   } finally {
+  //     setLocating(false)
+  //   }
+  // }
+
+  const handleAutoFillPoliceStation = async () => {
+    try {
+      console.log("📍 Detecting location...")
+      setLocating(true)
+
+      const { lat, lng } = await getUserLocation()
+      console.log("📍 Coordinates:", lat, lng)
+
+      const res = await fetch("/api/nearest-police-station", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lat, lng }),
+      })
+
+      console.log("🌐 API status:", res.status)
+
+      const data = await res.json()
+      console.log("🌐 API data:", data)
+
+      if (!res.ok) throw new Error(data.error || "API failed")
+
+      setFormData((prev) => ({
+        ...prev,
+        policeStation: data.name,
+        directionDistance: data.address,
+      }))
+    } catch (err) {
+      console.error("❌ Location error:", err)
+      alert("Unable to detect nearest police station")
+    } finally {
+      setLocating(false)
+    }
+  }
+
+
   return (
     <div className="max-w-5xl mx-auto">
       <Card>
@@ -125,46 +244,57 @@ export function FIRForm({ onSuccess, onCancel, editingFIR }: FIRFormProps) {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Police Station Details */}
+            {/* POLICE STATION */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold">1. Police Station Details</h3>
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-semibold">
+                  1. Police Station Details
+                </h3>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAutoFillPoliceStation}
+                  disabled={locating}
+                >
+                  {locating ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Detecting…
+                    </>
+                  ) : (
+                    <>
+                      <MapPin className="h-4 w-4 mr-2" />
+                      Use My Location
+                    </>
+                  )}
+                </Button>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="district">District *</Label>
-                  <Input
-                    id="district"
-                    value={formData.district}
-                    onChange={(e) => handleInputChange("district", e.target.value)}
-                    placeholder="Enter district"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="policeStation">Police Station *</Label>
-                  <Input
-                    id="policeStation"
-                    value={formData.policeStation}
-                    onChange={(e) => handleInputChange("policeStation", e.target.value)}
-                    placeholder="Enter PS name"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="beatNumber">Beat Number</Label>
-                  <Input
-                    id="beatNumber"
-                    value={formData.beatNumber}
-                    onChange={(e) => handleInputChange("beatNumber", e.target.value)}
-                    placeholder="Beat No."
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="directionDistance">Direction & Distance</Label>
-                  <Input
-                    id="directionDistance"
-                    value={formData.directionDistance}
-                    onChange={(e) => handleInputChange("directionDistance", e.target.value)}
-                    placeholder="e.g., 2 km North"
-                  />
-                </div>
+                <Input
+                  placeholder="District"
+                  value={formData.district}
+                  onChange={(e) => handleInputChange("district", e.target.value)}
+                />
+                <Input
+                  placeholder="Police Station"
+                  value={formData.policeStation}
+                  onChange={(e) => handleInputChange("policeStation", e.target.value)}
+                />
+                <Input
+                  placeholder="Beat Number"
+                  value={formData.beatNumber}
+                  onChange={(e) => handleInputChange("beatNumber", e.target.value)}
+                />
+                <Input
+                  placeholder="Direction & Distance"
+                  value={formData.directionDistance}
+                  onChange={(e) =>
+                    handleInputChange("directionDistance", e.target.value)
+                  }
+                />
               </div>
             </div>
 
